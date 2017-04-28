@@ -3,38 +3,66 @@ package com.wlz.rxretrofit;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import rx.Observer;
+import com.hwangjr.rxbus.RxBus;
+import com.hwangjr.rxbus.annotation.Subscribe;
+
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String LOG_TAG = MainActivity.class.getName();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ApiService.Implementation.get().getPosts()
-            .subscribeOn(Schedulers.newThread())
+            .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<JsonElement>() {
-                    @Override
-                    public void onCompleted() {
-                        Log.e(LOG_TAG,"onCompleted");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e(LOG_TAG,"Error "+e.getLocalizedMessage());
-                        Log.e(LOG_TAG, e.getMessage());
-                    }
-
-                    @Override
-                    public void onNext(JsonElement jsonElement) {
-                        JsonArray jsonArray = jsonElement.getAsJsonArray();
-                        Log.e("Result",jsonArray.get(0).getAsJsonObject().get("title").getAsString());
-                    }
-                });
+                .subscribe(new JsonSubscriber());
     }
+
+    @Subscribe
+    public void onDataLoaded(JsonArray array){
+        Log.e("Result",array.get(0).getAsJsonObject().get("title").getAsString());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        RxBus.get().register(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        RxBus.get().unregister(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        RxBus.get().unregister(this);
+    }
+
+    /***
+ * Otto Bus Instance
+ *
+ */
+//    @Subscribe public void onDataLoaded(JsonArray array){
+//        Log.e("Result",array.get(0).getAsJsonObject().get("title").getAsString());
+//    }
+
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        BusProvider.getInstance().register(this);
+//    }
+//
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        BusProvider.getInstance().unregister(this);
+//    }
 }
